@@ -98,7 +98,7 @@
   .code-toolbar{ display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #382a4d; }
   .code-toolbar span{ color:var(--editor-fg); font-size:13px; opacity:.7; }
   .editor-wrap{ flex:1; display:flex; overflow:hidden; }
-  .line-numbers{ padding:16px 10px; text-align:right; color:var(--editor-line); font-family:'Consolas','Courier New',monospace; font-size:14px; line-height:1.6; user-select:none; background:#1d1529; overflow:hidden; min-width:40px; white-space:pre;}
+  .line-numbers{ padding:16px 10px; text-align:right; color:var(--editor-line); font-family:'Consolas','Courier New',monospace; font-size:14px; line-height:1.6; user-select:none; background:#1d1529; overflow:hidden; min-width:40px; white-space:pre; }
   textarea#code-input{ flex:1; background:transparent; border:none; outline:none; resize:none; color:var(--editor-fg); font-family:'Consolas','Courier New',monospace; font-size:14px; line-height:1.6; padding:16px; white-space:pre; }
   .code-footer{ padding:14px 18px; border-top:1px solid #382a4d; display:flex; justify-content:flex-end; gap:10px; }
 
@@ -257,7 +257,7 @@
         </div>
       </div>
       <table class="subs" id="subs-table">
-        <thead><tr><th>Time</th><th>School</th><th>Student</th><th>Problem</th><th>Time taken</th></tr></thead>
+        <thead><tr><th>Time</th><th>School</th><th>Student</th><th>Problem</th><th>Time taken</th><th>Correctness</th></tr></thead>
         <tbody id="subs-body"></tbody>
       </table>
     </div>
@@ -279,8 +279,8 @@ const ROUND_SECONDS = 30*60;
   only kept in this browser tab's memory (window.__localSubs) so you can test
   the full flow end to end before the backend is connected.
 */
-const SUPABASE_URL = "https://jhkyfgjnwacgykcwefon.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impoa3lmZ2pud2FjZ3lrY3dlZm9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwNTExMTcsImV4cCI6MjEwMTYyNzExN30.Q7RP6pWDOvtMelAHWV-Tm9JC1kPZJ6d5kvTxEyu1kLw";
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
 window.__localSubs = window.__localSubs || [];
 
 const PROBLEMS = [
@@ -289,61 +289,81 @@ const PROBLEMS = [
     inputFormat:"First line: an integer N — number of actions.\nNext N lines: <name> <action>, where action is BORROW or RETURN.",
     outputFormat:"A single integer — the number of students whose most recent action was BORROW (they still have an item out).",
     sampleInputLines:["5","Aman BORROW","Riya BORROW","Aman RETURN","Kabir BORROW","Riya RETURN"],
-    sampleOutput:"1" },
+    sampleOutput:"1",
+    hiddenInputLines:["6","Zara BORROW","Yusuf BORROW","Zara RETURN","Omar BORROW","Yusuf RETURN","Nadia BORROW"],
+    hiddenOutput:"2" },
   { id:2, title:"Problem 2",
     story:"Manoj runs a vegetable stall and buys the same quantities every day out of habit, leading to waste on some days and shortages on others. His daughter wants to find, from a week's sales log, which vegetable actually sold the highest total quantity, so her father knows what to stock more of.",
     inputFormat:"First line: an integer N — number of sales entries.\nNext N lines: <day> <vegetable> <quantity>.",
     outputFormat:"A single line — the name of the vegetable with the highest total quantity sold across all entries.",
     sampleInputLines:["6","Mon Tomato 20","Mon Spinach 15","Tue Tomato 25","Tue Spinach 5","Wed Tomato 10","Wed Onion 30"],
-    sampleOutput:"Tomato" },
+    sampleOutput:"Tomato",
+    hiddenInputLines:["5","Mon Onion 12","Tue Onion 18","Tue Spinach 20","Wed Spinach 10","Wed Onion 5"],
+    hiddenOutput:"Onion" },
   { id:3, title:"Problem 3",
     story:"A residential society collects maintenance complaints by hand, and nobody currently knows which pending complaint has been waiting the longest. The society secretary wants, given a list of complaints with the day they were reported and their status, to find the ID of the pending complaint that has been waiting since the earliest day.",
     inputFormat:"First line: an integer N — number of complaints.\nNext N lines: <id> <day_reported> <status>, where status is PENDING or RESOLVED.",
     outputFormat:"A single line — the id of the pending complaint with the smallest day_reported. If none are pending, print None.",
     sampleInputLines:["4","101 3 PENDING","102 7 RESOLVED","103 1 PENDING","104 5 PENDING"],
-    sampleOutput:"103" },
+    sampleOutput:"103",
+    hiddenInputLines:["5","201 4 PENDING","202 2 PENDING","203 9 RESOLVED","204 6 PENDING","205 1 RESOLVED"],
+    hiddenOutput:"202" },
   { id:4, title:"Problem 4",
     story:"At a busy school canteen, some students claim they've paid when they haven't, and the owner has no reliable way to see how much money is actually still owed across all the day's orders. Given a list of what each student owed and what they actually paid, he wants to know the total unpaid amount for the day.",
     inputFormat:"First line: an integer N — number of orders.\nNext N lines: <name> <amount_due> <amount_paid>.",
     outputFormat:"A single integer — the total amount still owed, summed across all students who paid less than they owed.",
     sampleInputLines:["3","Aisha 50 50","Rohan 40 20","Meera 60 60"],
-    sampleOutput:"20" },
+    sampleOutput:"20",
+    hiddenInputLines:["4","Neha 30 30","Farah 50 20","Vikram 40 40","Tanya 25 10"],
+    hiddenOutput:"45" },
   { id:5, title:"Problem 5",
     story:"A hostel mess orders roughly the same groceries every week, but some days it runs short while other days there's excess. The mess manager wants to know, given a week's ordered and consumed quantities, the total shortage — the amount by which consumption exceeded what was ordered, added up only on the days it actually ran short.",
     inputFormat:"First line: an integer N — number of days.\nNext N lines: <day> <ordered_kg> <consumed_kg>.",
     outputFormat:"A single integer — total shortage summed only over days where consumed_kg was greater than ordered_kg.",
     sampleInputLines:["3","Mon 50 45","Tue 40 55","Wed 30 30"],
-    sampleOutput:"15" },
+    sampleOutput:"15",
+    hiddenInputLines:["4","Mon 20 25","Tue 30 30","Wed 25 20","Thu 15 22"],
+    hiddenOutput:"12" },
   { id:6, title:"Problem 6",
     story:"A park book exchange box lets people take and return books freely, but the volunteer who maintains it has no way of knowing how many books are currently out with someone versus sitting in the box. Given a log of TAKEN and RETURNED actions, she wants to know how many books are currently out (their most recent action was TAKEN).",
     inputFormat:"First line: an integer N — number of actions.\nNext N lines: <book_title> <action>, where action is TAKEN or RETURNED.",
     outputFormat:"A single integer — the number of distinct books whose most recent action was TAKEN.",
     sampleInputLines:["5","Ember TAKEN","Wildfire TAKEN","Ember RETURNED","Nocturne TAKEN","Wildfire RETURNED"],
-    sampleOutput:"1" },
+    sampleOutput:"1",
+    hiddenInputLines:["6","Solace TAKEN","Drift TAKEN","Solace RETURNED","Mirage TAKEN","Drift RETURNED","Halcyon TAKEN"],
+    hiddenOutput:"2" },
   { id:7, title:"Problem 7",
     story:"A coaching center owner wants to identify which batches are underperforming in attendance so he can consider merging them. Given each batch's enrolled and present student counts, he wants a list of every batch where attendance is below 50 percent.",
     inputFormat:"First line: an integer N — number of batches.\nNext N lines: <batch_name> <enrolled> <present>.",
     outputFormat:"The names of all batches with attendance below 50 percent, space-separated in the order given. If none, print None.",
     sampleInputLines:["3","BatchA 30 10","BatchB 20 15","BatchC 25 5"],
-    sampleOutput:"BatchA BatchC" },
+    sampleOutput:"BatchA BatchC",
+    hiddenInputLines:["4","BatchX 40 25","BatchY 30 10","BatchZ 20 19","BatchW 15 5"],
+    hiddenOutput:"BatchY BatchW" },
   { id:8, title:"Problem 8",
     story:"Two washing machines are shared by a hostel floor using a paper sign-up sheet, and double-bookings keep happening. Given a list of names and the hour each person signed up for, the warden wants to know which hours have more than one person booked, so those conflicts can be sorted out.",
     inputFormat:"First line: an integer N — number of bookings.\nNext N lines: <name> <hour>.",
     outputFormat:"The conflicting hours (booked by more than one person), space-separated in ascending order. If none, print None.",
     sampleInputLines:["5","Aman 9","Rohit 10","Kabir 9","Dev 11","Aisha 10"],
-    sampleOutput:"9 10" },
+    sampleOutput:"9 10",
+    hiddenInputLines:["6","Neel 8","Farhan 9","Ira 8","Om 10","Sana 9","Priya 10"],
+    hiddenOutput:"8 9 10" },
   { id:9, title:"Problem 9",
     story:"A campus bike-sharing scheme has several stands, and bikes keep piling up at some while running out at others. Given each stand's starting bike count along with how many were taken and returned that day, the facilities office wants to know which stand ends the day with the fewest bikes.",
     inputFormat:"First line: an integer N — number of stands.\nNext N lines: <stand_name> <start_bikes> <taken> <returned>.",
     outputFormat:"A single line — the name of the stand with the lowest ending bike count (start - taken + returned).",
     sampleInputLines:["3","StationA 10 6 2","StationB 8 5 5","StationC 12 10 1"],
-    sampleOutput:"StationC" },
+    sampleOutput:"StationC",
+    hiddenInputLines:["3","StationX 15 8 3","StationY 10 4 6","StationZ 9 7 1"],
+    hiddenOutput:"StationZ" },
   { id:10, title:"Problem 10",
     story:"A school's lost and found room has become overwhelmed with unclaimed items, and staff want to identify which ones have genuinely been sitting for too long. Given each item's name, how many days it has been sitting, and whether it has been claimed, they want to know how many unclaimed items have been sitting for more than 30 days.",
     inputFormat:"First line: an integer N — number of items.\nNext N lines: <item_name> <days_sitting> <status>, where status is CLAIMED or UNCLAIMED.",
     outputFormat:"A single integer — the count of items that are UNCLAIMED and have days_sitting greater than 30.",
     sampleInputLines:["4","Umbrella 45 UNCLAIMED","Bottle 10 UNCLAIMED","IDCard 60 CLAIMED","Violin 90 UNCLAIMED"],
-    sampleOutput:"2" }
+    sampleOutput:"2",
+    hiddenInputLines:["5","Scarf 50 UNCLAIMED","Charger 20 UNCLAIMED","Wallet 40 CLAIMED","Novel 35 UNCLAIMED","Cap 25 UNCLAIMED"],
+    hiddenOutput:"2" }
 ];
 
 let currentProblem = null;
@@ -532,6 +552,35 @@ function backToProblem(){
   showScreen('screen-problem');
 }
 
+/* ================= SILENT GRADING (hidden test case, not shown to students) ================= */
+async function gradeAgainstHiddenTest(){
+  try{
+    const py = await getPyodideInstance();
+    let captured = '';
+    py.setStdout({ batched:(s)=>{ captured += s + '\n'; } });
+    py.setStderr({ batched:(s)=>{ captured += s + '\n'; } });
+    const inputLinesJson = JSON.stringify(currentProblem.hiddenInputLines);
+    const wrapper = `
+import builtins
+_eureka_lines = ${inputLinesJson}
+_eureka_iter = iter(_eureka_lines)
+def input(prompt=''):
+    try:
+        return next(_eureka_iter)
+    except StopIteration:
+        return ''
+builtins.input = input
+`;
+    await py.runPythonAsync(wrapper);
+    await py.runPythonAsync(codeInput.value);
+    const actual = captured.trim();
+    const expected = currentProblem.hiddenOutput.trim();
+    return actual === expected ? 'Correct' : 'Incorrect';
+  }catch(err){
+    return 'Error';
+  }
+}
+
 /* ================= SUBMIT ================= */
 async function submitSolution(auto){
   if(!auto){
@@ -539,11 +588,15 @@ async function submitSolution(auto){
     if(!ok) return;
   }
   clearInterval(timerInterval);
+  const submitBtn = document.querySelector('.code-footer .btn:not(.btn-ghost)');
+  if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Checking...'; }
   const durationMs = selectionStart ? (Date.now()-selectionStart) : null;
+  const correctness = await gradeAgainstHiddenTest();
   const submission = {
     school: currentSchool, student: currentStudent,
     problemId: currentProblem.id, problemTitle: currentProblem.title,
-    code: codeInput.value, timestamp: new Date().toISOString(), durationMs
+    code: codeInput.value, timestamp: new Date().toISOString(), durationMs,
+    correctness
   };
   await saveSubmission(submission);
   showScreen('screen-thankyou');
@@ -563,7 +616,8 @@ async function saveSubmission(submission){
         body: JSON.stringify({
           school: submission.school, student: submission.student,
           problem_title: submission.problemTitle, code: submission.code,
-          duration_ms: submission.durationMs, created_at: submission.timestamp
+          duration_ms: submission.durationMs, created_at: submission.timestamp,
+          correctness: submission.correctness
         })
       });
       return;
@@ -583,7 +637,7 @@ function formatDuration(ms){
 }
 async function loadSubmissions(){
   const tbody = document.getElementById('subs-body');
-  tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
   let rows = [];
   if(SUPABASE_URL && SUPABASE_ANON_KEY){
     try{
@@ -592,7 +646,7 @@ async function loadSubmissions(){
       });
       const data = await res.json();
       rows = data.map(d=>({ school:d.school, student:d.student, problemTitle:d.problem_title,
-        durationMs:d.duration_ms, timestamp:d.created_at }));
+        durationMs:d.duration_ms, timestamp:d.created_at, correctness:d.correctness }));
     }catch(e){
       rows = window.__localSubs;
     }
@@ -602,11 +656,11 @@ async function loadSubmissions(){
   rows.sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp));
   window.__lastSubs = rows;
   tbody.innerHTML = '';
-  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="5">No submissions yet.</td></tr>'; return; }
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="6">No submissions yet.</td></tr>'; return; }
   rows.forEach(r=>{
     const tr = document.createElement('tr');
     const time = new Date(r.timestamp).toLocaleString();
-    tr.innerHTML = `<td>${time}</td><td>${escapeHtml(r.school)}</td><td>${escapeHtml(r.student)}</td><td>${escapeHtml(r.problemTitle)}</td><td>${formatDuration(r.durationMs)}</td>`;
+    tr.innerHTML = `<td>${time}</td><td>${escapeHtml(r.school)}</td><td>${escapeHtml(r.student)}</td><td>${escapeHtml(r.problemTitle)}</td><td>${formatDuration(r.durationMs)}</td><td>${escapeHtml(r.correctness||'—')}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -614,9 +668,9 @@ function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 function downloadCSV(){
   const rows = window.__lastSubs || [];
   if(rows.length===0){ alert('No submissions to export yet.'); return; }
-  let csv = 'Timestamp,School,Student,Problem,Time Taken\n';
+  let csv = 'Timestamp,School,Student,Problem,Time Taken,Correctness\n';
   rows.forEach(r=>{
-    csv += `${r.timestamp},"${(r.school||'').replace(/"/g,'""')}","${(r.student||'').replace(/"/g,'""')}","${r.problemTitle||''}","${formatDuration(r.durationMs)}"\n`;
+    csv += `${r.timestamp},"${(r.school||'').replace(/"/g,'""')}","${(r.student||'').replace(/"/g,'""')}","${r.problemTitle||''}","${formatDuration(r.durationMs)}","${r.correctness||''}"\n`;
   });
   const blob = new Blob([csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
