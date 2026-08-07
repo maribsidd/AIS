@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eureka: Round 1 — Odyssey</title>
+<style>
+  :root{
+    --bg-0:#f6f0fb;
+    --purple-900:#3a1663;
+    --purple-800:#4a1f7a;
+    --purple-700:#5f2c8f;
+    --purple-600:#7b3fa6;
+    --purple-400:#a578c9;
+    --purple-200:#d9c3ec;
+    --purple-100:#ece0f7;
+    --card-bg:#ffffff;
+    --ink:#2c1a42;
+    --ink-soft:#6b5680;
+    --editor-bg:#241a33;
+    --editor-fg:#e7dcf5;
+    --editor-line:#5a4a72;
+    --danger:#b33a3a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background:var(--bg-0); color:var(--ink); min-height:100vh; overflow-x:hidden; position:relative;
+  }
+  #petal-canvas{ position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+  .app{ position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px 16px; }
+  .screen{ display:none; width:100%; max-width:1200px; }
+  .screen.active{ display:flex; flex-direction:column; align-items:center; }
+
+  .arc-title{ display:flex; justify-content:center; margin-bottom:6px; }
+  .arc-title span{ display:inline-block; font-size:56px; font-weight:700; color:var(--purple-800); letter-spacing:1px; }
+  .subtitle{ font-style:italic; color:var(--purple-600); font-size:18px; margin-bottom:20px; text-align:center; }
+
+  /* Splash */
+  .splash-eyebrow{ letter-spacing:4px; font-size:13px; color:var(--purple-600); margin-bottom:8px; text-transform:uppercase; }
+  .splash-line{ color:var(--purple-700); font-size:16px; margin-top:18px; text-align:center; max-width:480px; }
+  .splash-tag{ color:var(--ink-soft); font-size:14px; margin-top:30px; text-align:center; }
+
+  .card-panel{
+    background:var(--card-bg); border-radius:20px; padding:40px 48px;
+    box-shadow:0 12px 40px rgba(90,40,140,0.15);
+    display:flex; flex-direction:column; align-items:center; gap:16px;
+    min-width:340px;
+  }
+  .card-panel input{
+    width:100%; padding:13px 16px; border-radius:10px;
+    border:1.5px solid var(--purple-200); font-size:15px; outline:none; color:var(--ink);
+  }
+  .card-panel input:focus{ border-color:var(--purple-600); }
+  .btn{ background:var(--purple-700); color:#fff; border:none; padding:13px 32px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:background .15s, transform .1s; }
+  .btn:hover{ background:var(--purple-800); }
+  .btn:active{ transform:scale(0.97); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; color:var(--purple-600); border:1.5px solid var(--purple-400); }
+  .btn-ghost:hover{ background:var(--purple-100); }
+  .error-msg{ color:var(--danger); font-size:14px; min-height:18px; }
+
+  .page-heading{ text-align:center; margin-bottom:36px; }
+  .page-heading h1{ font-size:32px; color:var(--purple-800); margin:0 0 6px; }
+  .page-heading p{ color:var(--ink-soft); font-style:italic; margin:0; }
+  .card-grid{ display:grid; grid-template-columns:repeat(5, 1fr); gap:20px; width:100%; }
+  .p-card{
+    background:var(--card-bg); border-radius:16px; padding:28px 12px; text-align:center; cursor:pointer;
+    border:2px solid transparent; box-shadow:0 6px 18px rgba(90,40,140,0.10);
+    transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .p-card:hover{ transform:translateY(-4px); border-color:var(--purple-400); box-shadow:0 10px 26px rgba(90,40,140,0.20); }
+  .p-card .num{ font-size:30px; font-weight:700; color:var(--purple-700); }
+  .p-card .label{ font-size:13px; color:var(--ink-soft); margin-top:4px; }
+
+  .problem-topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    width:100%; margin-bottom:14px;
+  }
+  .timer{
+    background:var(--purple-800); color:#fff; padding:8px 18px; border-radius:10px;
+    font-weight:700; font-size:18px; letter-spacing:1px; font-family:monospace;
+  }
+  .timer.low{ background:var(--danger); }
+  .problem-layout{
+    display:flex; gap:0; width:100%; height:76vh; background:var(--card-bg);
+    border-radius:16px; overflow:hidden; box-shadow:0 12px 40px rgba(90,40,140,0.15);
+  }
+  .problem-pane{ flex:0 0 42%; padding:28px; overflow-y:auto; border-right:1px solid var(--purple-100); }
+  .problem-pane h2{ color:var(--purple-800); font-size:20px; margin-top:0; }
+  .problem-pane p{ line-height:1.65; color:var(--ink); font-size:14.5px; }
+  .spec-box{ background:var(--purple-100); border-radius:10px; padding:12px 16px; margin:14px 0; }
+  .spec-box h4{ margin:0 0 6px; color:var(--purple-700); font-size:13px; text-transform:uppercase; letter-spacing:.5px; }
+  .spec-box pre{ margin:0; font-family:monospace; font-size:13px; white-space:pre-wrap; color:var(--ink); }
+  .code-pane{ flex:1; display:flex; flex-direction:column; background:var(--editor-bg); }
+  .code-toolbar{ display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #382a4d; }
+  .code-toolbar span{ color:var(--editor-fg); font-size:13px; opacity:.7; }
+  .editor-wrap{ flex:1; display:flex; overflow:hidden; }
+  .line-numbers{ padding:16px 10px; text-align:right; color:var(--editor-line); font-family:'Consolas','Courier New',monospace; font-size:14px; line-height:1.6; user-select:none; background:#1d1529; overflow:hidden; min-width:40px; }
+  textarea#code-input{ flex:1; background:transparent; border:none; outline:none; resize:none; color:var(--editor-fg); font-family:'Consolas','Courier New',monospace; font-size:14px; line-height:1.6; padding:16px; white-space:pre; }
+  .code-footer{ padding:14px 18px; border-top:1px solid #382a4d; display:flex; justify-content:flex-end; gap:10px; }
+
+  /* Output (IDLE-style) screen */
+  .output-panel{ width:100%; background:var(--card-bg); border-radius:16px; overflow:hidden; box-shadow:0 12px 40px rgba(90,40,140,0.15); }
+  .output-header{ background:var(--purple-800); color:#fff; padding:16px 24px; font-weight:600; font-size:16px; }
+  .output-section{ padding:18px 24px; border-bottom:1px solid var(--purple-100); }
+  .output-section h4{ margin:0 0 10px; color:var(--purple-700); font-size:13px; text-transform:uppercase; letter-spacing:.5px; }
+  .output-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:18px 24px; }
+  .output-box{ background:#1d1529; border-radius:10px; padding:14px 16px; min-height:80px; }
+  .output-box pre{ margin:0; font-family:monospace; font-size:13.5px; color:var(--editor-fg); white-space:pre-wrap; }
+  .output-footer{ padding:16px 24px; display:flex; justify-content:flex-start; }
+
+  /* Thank you */
+  .thankyou-box{ background:var(--card-bg); border-radius:20px; padding:60px; text-align:center; box-shadow:0 12px 40px rgba(90,40,140,0.15); }
+  .thankyou-box h1{ color:var(--purple-800); }
+  .thankyou-box p{ color:var(--ink-soft); }
+
+  /* Admin */
+  .admin-panel{ width:100%; background:var(--card-bg); border-radius:16px; padding:28px; box-shadow:0 12px 40px rgba(90,40,140,0.15); }
+  .admin-panel h2{ color:var(--purple-800); }
+  table.subs{ width:100%; border-collapse:collapse; font-size:13px; margin-top:14px; }
+  table.subs th, table.subs td{ padding:8px 10px; border-bottom:1px solid var(--purple-100); text-align:left; vertical-align:top; }
+  table.subs th{ color:var(--purple-700); }
+  .admin-toolbar{ display:flex; justify-content:space-between; align-items:center; }
+
+  @media (max-width:900px){
+    .card-grid{ grid-template-columns:repeat(2,1fr); }
+    .problem-layout{ flex-direction:column; height:auto; }
+    .problem-pane{ border-right:none; border-bottom:1px solid var(--purple-100); flex:none; }
+    .arc-title span{ font-size:34px; }
+    .output-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="petal-canvas"></canvas>
+
+<div class="app">
+
+  <!-- SPLASH -->
+  <div class="screen active" id="screen-splash">
+    <div class="splash-eyebrow">Innovate. Solve. Impact.</div>
+    <div class="arc-title" id="arc-title-splash"></div>
+    <div class="subtitle">Solve for Tomorrow</div>
+    <div class="splash-line">A hackathon of ideas. A movement for the future.</div>
+    <div style="margin-top:36px;"><button class="btn" onclick="showScreen('screen-start')">Begin</button></div>
+  </div>
+
+  <!-- START SCREEN (school + name + password) -->
+  <div class="screen" id="screen-start">
+    <div class="arc-title" id="arc-title-start"></div>
+    <div class="subtitle">A journey to uncover the problem.</div>
+    <div class="card-panel">
+      <input type="text" id="school-name" placeholder="School name">
+      <input type="text" id="student-name" placeholder="Your name">
+      <input type="password" id="password-input" placeholder="Event password">
+      <button class="btn" onclick="checkStart()">Continue</button>
+      <div class="error-msg" id="start-error"></div>
+    </div>
+  </div>
+
+  <!-- CARD SELECTION -->
+  <div class="screen" id="screen-cards">
+    <div class="page-heading">
+      <h1>Choose your problem</h1>
+      <p>Select the problem number you were assigned</p>
+    </div>
+    <div class="card-grid" id="card-grid"></div>
+  </div>
+
+  <!-- PROBLEM + CODE -->
+  <div class="screen" id="screen-problem">
+    <div class="problem-topbar">
+      <div></div>
+      <div class="timer" id="timer">30:00</div>
+    </div>
+    <div class="problem-layout">
+      <div class="problem-pane">
+        <h2 id="problem-title"></h2>
+        <p id="problem-story"></p>
+        <div class="spec-box">
+          <h4>Input format</h4>
+          <pre id="problem-input-format"></pre>
+        </div>
+        <div class="spec-box">
+          <h4>Output format</h4>
+          <pre id="problem-output-format"></pre>
+        </div>
+        <div class="spec-box">
+          <h4>Sample input</h4>
+          <pre id="problem-sample-input"></pre>
+        </div>
+        <div class="spec-box">
+          <h4>Sample output</h4>
+          <pre id="problem-sample-output"></pre>
+        </div>
+      </div>
+      <div class="code-pane">
+        <div class="code-toolbar">
+          <span>Python solution</span>
+          <span id="char-count">0 lines</span>
+        </div>
+        <div class="editor-wrap">
+          <div class="line-numbers" id="line-numbers">1</div>
+          <textarea id="code-input" spellcheck="false" placeholder="# write your code here"></textarea>
+        </div>
+        <div class="code-footer">
+          <button class="btn-ghost btn" id="run-btn" onclick="runCode()">Run</button>
+          <button class="btn" onclick="submitSolution()">Submit solution</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTPUT (IDLE-style) -->
+  <div class="screen" id="screen-output">
+    <div class="output-panel">
+      <div class="output-header">Run result</div>
+      <div class="output-grid">
+        <div>
+          <div class="output-section" style="border:none; padding-left:0;">
+            <h4>Sample input</h4>
+            <div class="output-box"><pre id="out-sample-input"></pre></div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <div class="output-grid">
+        <div class="output-box"><pre id="out-your-output">Running...</pre></div>
+        <div class="output-box"><pre id="out-expected-output"></pre></div>
+      </div>
+      <div class="output-footer">
+        <button class="btn-ghost btn" onclick="backToProblem()">Back to code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- THANK YOU -->
+  <div class="screen" id="screen-thankyou">
+    <div class="thankyou-box">
+      <h1>Submitted</h1>
+      <p>Your solution has been recorded. You may now close this page.</p>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="screen" id="screen-admin-panel">
+    <div class="admin-panel">
+      <div class="admin-toolbar">
+        <h2>Round 1 submissions</h2>
+        <div style="display:flex; gap:10px;">
+          <button class="btn-ghost btn" onclick="loadSubmissions()">Refresh</button>
+          <button class="btn" onclick="downloadCSV()">Download CSV</button>
+        </div>
+      </div>
+      <table class="subs" id="subs-table">
+        <thead><tr><th>Time</th><th>School</th><th>Student</th><th>Problem</th><th>Time taken</th></tr></thead>
+        <tbody id="subs-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ================= CONFIG ================= */
+const STUDENT_PASSWORD = "EUREKA2026";
+const ADMIN_PASSWORD = "EurekaOrganizer2026";
+const ROUND_SECONDS = 30*60;
+
+/*
+  SUPABASE PLACEHOLDER — not wired yet.
+  Once you send the Project URL and anon public key, this section gets replaced
+  with real fetch() calls to your Supabase table. Until then, submissions are
+  only kept in this browser tab's memory (window.__localSubs) so you can test
+  the full flow end to end before the backend is connected.
+*/
+const SUPABASE_URL = "";
+const SUPABASE_ANON_KEY = "";
+window.__localSubs = window.__localSubs || [];
+
+const PROBLEMS = [
+  { id:1, title:"Problem 1",
+    story:"Rhea runs the equipment desk at her school's sports complex. Students borrow items by leaving their ID as a deposit and collecting it back on return. With over 150 students borrowing every week, she has lost track of who currently still has an item out. She wants a simple way to know, for any list of borrow and return actions, how many students currently still have an item with them.",
+    inputFormat:"First line: an integer N — number of actions.\nNext N lines: <name> <action>, where action is BORROW or RETURN.",
+    outputFormat:"A single integer — the number of students whose most recent action was BORROW (they still have an item out).",
+    sampleInputLines:["5","Aman BORROW","Riya BORROW","Aman RETURN","Kabir BORROW","Riya RETURN"],
+    sampleOutput:"1" },
+  { id:2, title:"Problem 2",
+    story:"Manoj runs a vegetable stall and buys the same quantities every day out of habit, leading to waste on some days and shortages on others. His daughter wants to find, from a week's sales log, which vegetable actually sold the highest total quantity, so her father knows what to stock more of.",
+    inputFormat:"First line: an integer N — number of sales entries.\nNext N lines: <day> <vegetable> <quantity>.",
+    outputFormat:"A single line — the name of the vegetable with the highest total quantity sold across all entries.",
+    sampleInputLines:["6","Mon Tomato 20","Mon Spinach 15","Tue Tomato 25","Tue Spinach 5","Wed Tomato 10","Wed Onion 30"],
+    sampleOutput:"Tomato" },
+  { id:3, title:"Problem 3",
+    story:"A residential society collects maintenance complaints by hand, and nobody currently knows which pending complaint has been waiting the longest. The society secretary wants, given a list of complaints with the day they were reported and their status, to find the ID of the pending complaint that has been waiting since the earliest day.",
+    inputFormat:"First line: an integer N — number of complaints.\nNext N lines: <id> <day_reported> <status>, where status is PENDING or RESOLVED.",
+    outputFormat:"A single line — the id of the pending complaint with the smallest day_reported. If none are pending, print None.",
+    sampleInputLines:["4","101 3 PENDING","102 7 RESOLVED","103 1 PENDING","104 5 PENDING"],
+    sampleOutput:"103" },
+  { id:4, title:"Problem 4",
+    story:"At a busy school canteen, some students claim they've paid when they haven't, and the owner has no reliable way to see how much money is actually still owed across all the day's orders. Given a list of what each student owed and what they actually paid, he wants to know the total unpaid amount for the day.",
+    inputFormat:"First line: an integer N — number of orders.\nNext N lines: <name> <amount_due> <amount_paid>.",
+    outputFormat:"A single integer — the total amount still owed, summed across all students who paid less than they owed.",
+    sampleInputLines:["3","Aisha 50 50","Rohan 40 20","Meera 60 60"],
+    sampleOutput:"20" },
+  { id:5, title:"Problem 5",
+    story:"A hostel mess orders roughly the same groceries every week, but some days it runs short while other days there's excess. The mess manager wants to know, given a week's ordered and consumed quantities, the total shortage — the amount by which consumption exceeded what was ordered, added up only on the days it actually ran short.",
+    inputFormat:"First line: an integer N — number of days.\nNext N lines: <day> <ordered_kg> <consumed_kg>.",
+    outputFormat:"A single integer — total shortage summed only over days where consumed_kg was greater than ordered_kg.",
+    sampleInputLines:["3","Mon 50 45","Tue 40 55","Wed 30 30"],
+    sampleOutput:"15" },
+  { id:6, title:"Problem 6",
+    story:"A park book exchange box lets people take and return books freely, but the volunteer who maintains it has no way of knowing how many books are currently out with someone versus sitting in the box. Given a log of TAKEN and RETURNED actions, she wants to know how many books are currently out (their most recent action was TAKEN).",
+    inputFormat:"First line: an integer N — number of actions.\nNext N lines: <book_title> <action>, where action is TAKEN or RETURNED.",
+    outputFormat:"A single integer — the number of distinct books whose most recent action was TAKEN.",
+    sampleInputLines:["5","Ember TAKEN","Wildfire TAKEN","Ember RETURNED","Nocturne TAKEN","Wildfire RETURNED"],
+    sampleOutput:"1" },
+  { id:7, title:"Problem 7",
+    story:"A coaching center owner wants to identify which batches are underperforming in attendance so he can consider merging them. Given each batch's enrolled and present student counts, he wants a list of every batch where attendance is below 50 percent.",
+    inputFormat:"First line: an integer N — number of batches.\nNext N lines: <batch_name> <enrolled> <present>.",
+    outputFormat:"The names of all batches with attendance below 50 percent, space-separated in the order given. If none, print None.",
+    sampleInputLines:["3","BatchA 30 10","BatchB 20 15","BatchC 25 5"],
+    sampleOutput:"BatchA BatchC" },
+  { id:8, title:"Problem 8",
+    story:"Two washing machines are shared by a hostel floor using a paper sign-up sheet, and double-bookings keep happening. Given a list of names and the hour each person signed up for, the warden wants to know which hours have more than one person booked, so those conflicts can be sorted out.",
+    inputFormat:"First line: an integer N — number of bookings.\nNext N lines: <name> <hour>.",
+    outputFormat:"The conflicting hours (booked by more than one person), space-separated in ascending order. If none, print None.",
+    sampleInputLines:["5","Aman 9","Rohit 10","Kabir 9","Dev 11","Aisha 10"],
+    sampleOutput:"9 10" },
+  { id:9, title:"Problem 9",
+    story:"A campus bike-sharing scheme has several stands, and bikes keep piling up at some while running out at others. Given each stand's starting bike count along with how many were taken and returned that day, the facilities office wants to know which stand ends the day with the fewest bikes.",
+    inputFormat:"First line: an integer N — number of stands.\nNext N lines: <stand_name> <start_bikes> <taken> <returned>.",
+    outputFormat:"A single line — the name of the stand with the lowest ending bike count (start - taken + returned).",
+    sampleInputLines:["3","StationA 10 6 2","StationB 8 5 5","StationC 12 10 1"],
+    sampleOutput:"StationC" },
+  { id:10, title:"Problem 10",
+    story:"A school's lost and found room has become overwhelmed with unclaimed items, and staff want to identify which ones have genuinely been sitting for too long. Given each item's name, how many days it has been sitting, and whether it has been claimed, they want to know how many unclaimed items have been sitting for more than 30 days.",
+    inputFormat:"First line: an integer N — number of items.\nNext N lines: <item_name> <days_sitting> <status>, where status is CLAIMED or UNCLAIMED.",
+    outputFormat:"A single integer — the count of items that are UNCLAIMED and have days_sitting greater than 30.",
+    sampleInputLines:["4","Umbrella 45 UNCLAIMED","Bottle 10 UNCLAIMED","IDCard 60 CLAIMED","Violin 90 UNCLAIMED"],
+    sampleOutput:"2" }
+];
+
+let currentProblem = null;
+let currentSchool = "";
+let currentStudent = "";
+let selectionStart = null;
+let timerInterval = null;
+let timeRemaining = ROUND_SECONDS;
+
+/* ================= FALLING PETALS ================= */
+const canvas = document.getElementById('petal-canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+const petalColors = ['#c9a8e0','#a578c9','#d9c3ec','#8a4fb3'];
+const petals = [];
+for(let i=0;i<45;i++){
+  petals.push({ x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight, size:6+Math.random()*10,
+    speed:0.4+Math.random()*0.9, drift:Math.random()*1-0.5, angle:Math.random()*Math.PI*2,
+    spin:(Math.random()*0.02)-0.01, color:petalColors[Math.floor(Math.random()*petalColors.length)] });
+}
+function drawPetal(p){
+  ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle); ctx.fillStyle=p.color; ctx.globalAlpha=0.55;
+  ctx.beginPath(); ctx.ellipse(0,0,p.size,p.size*0.6,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+}
+function animatePetals(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  petals.forEach(p=>{
+    p.y+=p.speed; p.x+=p.drift; p.angle+=p.spin;
+    if(p.y>canvas.height+20){ p.y=-20; p.x=Math.random()*canvas.width; }
+    if(p.x>canvas.width+20) p.x=-20; if(p.x<-20) p.x=canvas.width+20;
+    drawPetal(p);
+  });
+  requestAnimationFrame(animatePetals);
+}
+animatePetals();
+
+/* ================= ARC TITLE ================= */
+function buildArcTitle(containerId, text){
+  const container = document.getElementById(containerId);
+  const chars = text.split('');
+  const mid = (chars.length-1)/2;
+  chars.forEach((ch,i)=>{
+    const span = document.createElement('span');
+    span.textContent = ch===' ' ? '\u00A0' : ch;
+    const dist = i-mid;
+    const lift = Math.max(0, 26 - 0.55*dist*dist);
+    const rot = dist*1.6;
+    span.style.transform = `translateY(${-lift}px) rotate(${rot}deg)`;
+    container.appendChild(span);
+  });
+}
+buildArcTitle('arc-title-splash', 'EUREKA');
+buildArcTitle('arc-title-start', 'ROUND 1: ODYSSEY');
+
+/* ================= NAVIGATION ================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ================= START (school + name + password) ================= */
+function checkStart(){
+  const school = document.getElementById('school-name').value.trim();
+  const student = document.getElementById('student-name').value.trim();
+  const pass = document.getElementById('password-input').value.trim();
+  const err = document.getElementById('start-error');
+  if(!school || !student || !pass){
+    err.textContent = 'Please fill in all fields.';
+    return;
+  }
+  if(pass === STUDENT_PASSWORD){
+    err.textContent = '';
+    currentSchool = school; currentStudent = student;
+    buildCardGrid();
+    showScreen('screen-cards');
+  } else if(pass === ADMIN_PASSWORD){
+    err.textContent = '';
+    showScreen('screen-admin-panel');
+    loadSubmissions();
+  } else {
+    err.textContent = 'Incorrect password.';
+  }
+}
+
+/* ================= CARDS ================= */
+function buildCardGrid(){
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = '';
+  PROBLEMS.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'p-card';
+    card.innerHTML = `<div class="num">${p.id}</div><div class="label">${p.title}</div>`;
+    card.onclick = ()=> openProblem(p.id);
+    grid.appendChild(card);
+  });
+}
+
+function openProblem(id){
+  currentProblem = PROBLEMS.find(p=>p.id===id);
+  document.getElementById('problem-title').textContent = currentProblem.title;
+  document.getElementById('problem-story').textContent = currentProblem.story;
+  document.getElementById('problem-input-format').textContent = currentProblem.inputFormat;
+  document.getElementById('problem-output-format').textContent = currentProblem.outputFormat;
+  document.getElementById('problem-sample-input').textContent = currentProblem.sampleInputLines.join('\n');
+  document.getElementById('problem-sample-output').textContent = currentProblem.sampleOutput;
+  document.getElementById('code-input').value = '';
+  updateLineNumbers();
+  selectionStart = Date.now();
+  startTimer();
+  showScreen('screen-problem');
+}
+
+/* ================= TIMER ================= */
+function startTimer(){
+  clearInterval(timerInterval);
+  timeRemaining = ROUND_SECONDS;
+  renderTimer();
+  timerInterval = setInterval(()=>{
+    timeRemaining--;
+    renderTimer();
+    if(timeRemaining<=0){
+      clearInterval(timerInterval);
+      submitSolution(true);
+    }
+  }, 1000);
+}
+function renderTimer(){
+  const m = Math.floor(timeRemaining/60);
+  const s = timeRemaining%60;
+  const el = document.getElementById('timer');
+  el.textContent = m + ':' + (s<10?'0':'') + s;
+  el.classList.toggle('low', timeRemaining<=60);
+}
+
+/* ================= CODE EDITOR ================= */
+const codeInput = document.getElementById('code-input');
+const lineNumbers = document.getElementById('line-numbers');
+function updateLineNumbers(){
+  const lines = codeInput.value.split('\n').length;
+  let nums = ''; for(let i=1;i<=lines;i++) nums += i + '\n';
+  lineNumbers.textContent = nums;
+  document.getElementById('char-count').textContent = lines + (lines===1?' line':' lines');
+}
+codeInput.addEventListener('input', updateLineNumbers);
+codeInput.addEventListener('scroll', ()=>{ lineNumbers.scrollTop = codeInput.scrollTop; });
+
+/* ================= RUN (IDLE-style output screen) ================= */
+let pyodideInstance = null;
+async function getPyodideInstance(){
+  if(!pyodideInstance){ pyodideInstance = await loadPyodide(); }
+  return pyodideInstance;
+}
+async function runCode(){
+  document.getElementById('out-sample-input').textContent = currentProblem.sampleInputLines.join('\n');
+  document.getElementById('out-expected-output').textContent = currentProblem.sampleOutput;
+  document.getElementById('out-your-output').textContent = 'Running...';
+  showScreen('screen-output');
+
+  try{
+    const py = await getPyodideInstance();
+    let captured = '';
+    py.setStdout({ batched:(s)=>{ captured += s + '\n'; } });
+    py.setStderr({ batched:(s)=>{ captured += s + '\n'; } });
+    const inputLinesJson = JSON.stringify(currentProblem.sampleInputLines);
+    const wrapper = `
+import builtins
+_eureka_lines = ${inputLinesJson}
+_eureka_iter = iter(_eureka_lines)
+def input(prompt=''):
+    try:
+        return next(_eureka_iter)
+    except StopIteration:
+        return ''
+builtins.input = input
+`;
+    await py.runPythonAsync(wrapper);
+    await py.runPythonAsync(codeInput.value);
+    document.getElementById('out-your-output').textContent = captured.trim() ? captured : '(no output — check your print statements)';
+  }catch(err){
+    document.getElementById('out-your-output').textContent = 'Error:\n' + err.message;
+  }
+}
+function backToProblem(){
+  showScreen('screen-problem');
+}
+
+/* ================= SUBMIT ================= */
+async function submitSolution(auto){
+  if(!auto){
+    const ok = confirm('Submit your solution? You will not be able to change it after this.');
+    if(!ok) return;
+  }
+  clearInterval(timerInterval);
+  const durationMs = selectionStart ? (Date.now()-selectionStart) : null;
+  const submission = {
+    school: currentSchool, student: currentStudent,
+    problemId: currentProblem.id, problemTitle: currentProblem.title,
+    code: codeInput.value, timestamp: new Date().toISOString(), durationMs
+  };
+  await saveSubmission(submission);
+  showScreen('screen-thankyou');
+}
+
+async function saveSubmission(submission){
+  if(SUPABASE_URL && SUPABASE_ANON_KEY){
+    try{
+      await fetch(SUPABASE_URL + '/rest/v1/submissions', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'apikey':SUPABASE_ANON_KEY,
+          'Authorization':'Bearer ' + SUPABASE_ANON_KEY,
+          'Prefer':'return=minimal'
+        },
+        body: JSON.stringify({
+          school: submission.school, student: submission.student,
+          problem_title: submission.problemTitle, code: submission.code,
+          duration_ms: submission.durationMs, created_at: submission.timestamp
+        })
+      });
+      return;
+    }catch(e){
+      console.error('Supabase save failed, falling back to local memory', e);
+    }
+  }
+  window.__localSubs.push(submission);
+}
+
+/* ================= ADMIN ================= */
+function formatDuration(ms){
+  if(ms==null) return '—';
+  const totalSec = Math.round(ms/1000);
+  const m = Math.floor(totalSec/60); const s = totalSec%60;
+  return m + 'm ' + (s<10?'0':'') + s + 's';
+}
+async function loadSubmissions(){
+  const tbody = document.getElementById('subs-body');
+  tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+  let rows = [];
+  if(SUPABASE_URL && SUPABASE_ANON_KEY){
+    try{
+      const res = await fetch(SUPABASE_URL + '/rest/v1/submissions?select=*', {
+        headers:{ 'apikey':SUPABASE_ANON_KEY, 'Authorization':'Bearer ' + SUPABASE_ANON_KEY }
+      });
+      const data = await res.json();
+      rows = data.map(d=>({ school:d.school, student:d.student, problemTitle:d.problem_title,
+        durationMs:d.duration_ms, timestamp:d.created_at }));
+    }catch(e){
+      rows = window.__localSubs;
+    }
+  } else {
+    rows = window.__localSubs;
+  }
+  rows.sort((a,b)=> new Date(b.timestamp) - new Date(a.timestamp));
+  window.__lastSubs = rows;
+  tbody.innerHTML = '';
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="5">No submissions yet.</td></tr>'; return; }
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    const time = new Date(r.timestamp).toLocaleString();
+    tr.innerHTML = `<td>${time}</td><td>${escapeHtml(r.school)}</td><td>${escapeHtml(r.student)}</td><td>${escapeHtml(r.problemTitle)}</td><td>${formatDuration(r.durationMs)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function downloadCSV(){
+  const rows = window.__lastSubs || [];
+  if(rows.length===0){ alert('No submissions to export yet.'); return; }
+  let csv = 'Timestamp,School,Student,Problem,Time Taken\n';
+  rows.forEach(r=>{
+    csv += `${r.timestamp},"${(r.school||'').replace(/"/g,'""')}","${(r.student||'').replace(/"/g,'""')}","${r.problemTitle||''}","${formatDuration(r.durationMs)}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'eureka_round1_submissions.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
